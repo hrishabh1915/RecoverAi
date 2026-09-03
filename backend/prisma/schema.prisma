@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  RECOVERED
+}
+
+enum FailureReason {
+  NETWORK_ERROR
+  BANK_DECLINED_GENERIC
+  INSUFFICIENT_FUNDS
+  EXPIRED_CARD
+  AUTH_FAILURE
+  FRAUD_SUSPECTED
+  UNKNOWN
+}
+
+enum RecoveryAttemptStatus {
+  in_flight
+  completed
+  failed
+  cancelled
+}
+
+enum PolicyDecision {
+  ALLOW
+  DENY
+  HUMAN_APPROVAL_REQUIRED
+}
+
+enum PolicyAction {
+  SMART_RETRY
+  CUSTOMER_RECOVERY
+  HUMAN_REVIEW
+  NO_ACTION
+}
+
+model Merchant {
+  id                 String     @id @default(uuid())
+  name               String
+  automationEnabled  Boolean    @default(true) @map("automation_enabled")
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  customers          Customer[]
+  payments           Payment[]
+  processedEvents    ProcessedEvent[]
+
+  @@map("merchants")
+}
+
+model Customer {
+  id                  String    @id @default(uuid())
+  merchantId          String    @map("merchant_id")
+  externalCustomerId  String    @map("external_customer_id")
+  blocked             Boolean   @default(false)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  payments            Payment[]
+
+  @@unique([merchantId, externalCustomerId])
+  @@map("customers")
+}
+
+model Payment {
+  id                     String          @id @default(uuid())
+  merchantId             String          @map("merchant_id")
+  customerId             String          @map("customer_id")
+  gatewayPaymentId        String          @map("gateway_payment_id")
+  amountMinor             BigInt          @map("amount_minor")
+  currency                String
+  paymentMethod           String          @map("payment_method")
+  status                  PaymentStatus
+  failureReason            FailureReason?  @map("failure_reason")
+  transactionCreatedAt    DateTime        @map("transaction_created_at") @db.Timestamptz
+  recoveredAt              DateTime?       @map("recovered_at") @db.Timestamptz
+  createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  merchant                 Merchant        @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  customer                 Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  processedEvents          ProcessedEvent[]
+  recoveryAttempts         RecoveryAttempt[]
+  recoveryDecisions        RecoveryDecision[]
+
+  @@index([merchantId, customerId])
+  @@index([status])
+  @@map("payments")
+}
+
+model ProcessedEvent {
+  id               String    @id @default(uuid())
+  merchantId       String    @map("merchant_id")
+  gatewayEventId   String    @map("gateway_event_id")
+  paymentId        String    @map("payment_id")
+  eventReceivedAt  DateTime  @map("event_received_at") @db.Timestamptz
+  rawPayload       Json      @map("raw_payload")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  payment          Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  recoveryDecisions RecoveryDecision[]
+
+  @@unique([merchantId, gatewayEventId])
+  @@map("processed_events")
+}
+
+model RecoveryAttempt {
+  id            String                  @id @default(uuid())
+  paymentId     String                  @map("payment_id")
+  status        RecoveryAttemptStatus
+  retryCount    Int                     @default(0) @map("retry_count")
+  startedAt     DateTime                @map("started_at") @db.Timestamptz
+  completedAt   DateTime?               @map("completed_at") @db.Timestamptz
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz
+
+  payment       Payment                 @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  recoveryDecisions RecoveryDecision[]
+
+  @@index([paymentId, status])
+  @@map("recovery_attempts")
+  // NOTE: partial unique index (payment_id) WHERE status = 'in_flight'
+  // is NOT expressible in schema.prisma DSL — added manually in migration.sql.
+}
+
+model RecoveryDecision {
+  id                    String            @id @default(uuid())
+  paymentId             String            @map("payment_id")
+  recoveryAttemptId     String?           @map("recovery_attempt_id")
+  eventId               String            @map("event_id")
+  evaluationTime        DateTime          @map("evaluation_time") @db.Timestamptz
+  failureReasonScore    Int?              @map("failure_reason_score")
+  retryScore            Int?              @map("retry_score")
+  recencyScore          Int?              @map("recency_score")
+  historyScore          Int?              @map("history_score")
+  confidenceScore       Int?              @map("confidence_score")
+  recoveryScore         Int?              @map("recovery_score")
+  policyRuleTriggered   String            @map("policy_rule_triggered")
+  policyDecision        PolicyDecision    @map("policy_decision")
+  action                PolicyAction
+  aiResponse            Json?             @map("ai_response")
+  aiValid               Boolean           @map("ai_valid")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  payment               Payment           @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  recoveryAttempt       RecoveryAttempt?  @relation(fields: [recoveryAttemptId], references: [id], onDelete: Restrict)
+  event                 ProcessedEvent    @relation(fields: [eventId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId, evaluationTime])
+  @@map("recovery_decisions")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  action      String
+  actor       String
+  details     Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
