@@ -5,24 +5,29 @@
 // accepts AIResponse as a parameter alongside execution logic. The AI must
 // never reach the action executor directly. ExecutionContext is built
 // exclusively from a fresh DB read — never from cached or AI-provided data.
-//
-// This is a stub — throws "not implemented".
 
 import type { ExecutionContext } from '../types/policy.js';
 import { getPaymentForExecution } from './paymentRepository.js';
 import { paymentStatusToDomain, paymentMethodToDomain } from '../types/prismaMapping.js';
 
 // Build ExecutionContext from a fresh DB read.
-// The future action executor MUST check paymentStatusAtExecution before
+// The action executor MUST check paymentStatusAtExecution before
 // performing any side effect (e.g. abort if 'succeeded' or 'refunded').
 export async function buildExecutionContext(
-  _transactionId: string,
+  transactionId: string,
 ): Promise<ExecutionContext> {
-  // The implementation would call getPaymentForExecution(_transactionId),
-  // map the result via paymentStatusToDomain / paymentMethodToDomain,
-  // and return ExecutionContext. Stubbed for now.
-  void getPaymentForExecution;
-  void paymentStatusToDomain;
-  void paymentMethodToDomain;
-  throw new Error('not implemented');
+  const payment = await getPaymentForExecution(transactionId);
+  if (!payment) {
+    throw new Error(`Payment record not found for transactionId: ${transactionId}`);
+  }
+
+  return {
+    transactionId: payment.id,
+    customerId: payment.customerId,
+    amount: Number(payment.amountMinor),
+    currency: payment.currency,
+    paymentMethod: paymentMethodToDomain(payment.paymentMethod),
+    gatewayPaymentId: payment.gatewayPaymentId,
+    paymentStatusAtExecution: paymentStatusToDomain(payment.status),
+  };
 }

@@ -1,20 +1,56 @@
-// Repository barrel export — typed stubs only, no implementations.
+// Repository barrel export
 
-export type {
-  PaymentRecord,
-  PaymentUpdate,
+export {
+  createPayment,
+  getPaymentById,
+  getPaymentsByMerchantAndCustomer,
+  getAllPayments,
+  updatePayment,
+  getPaymentForExecution,
+  type PaymentRecord,
+  type PaymentUpdate,
+  type PaymentInsert,
 } from './paymentRepository.js';
-export type {
-  CustomerRecord,
-  CustomerState,
+
+export {
+  createCustomer,
+  getCustomerById,
+  getCustomerByExternalId,
+  getCustomerState,
+  setCustomerBlocked,
+  type CustomerRecord,
+  type CustomerState,
+  type CustomerInsert,
 } from './customerRepository.js';
-export type { ProcessedEventRecord } from './processedEventRepository.js';
-export type { RecoveryAttemptRecord } from './recoveryAttemptRepository.js';
-export type {
-  RecoveryDecisionRecord,
-  RecoveryDecisionInsert,
+
+export {
+  isEventProcessed,
+  insertProcessedEvent,
+  getProcessedEventById,
+  type ProcessedEventRecord,
+} from './processedEventRepository.js';
+
+export {
+  getActiveAttemptForPayment,
+  getAttemptsForPayment,
+  createRecoveryAttempt,
+  updateAttemptStatus,
+  type RecoveryAttemptRecord,
+} from './recoveryAttemptRepository.js';
+
+export {
+  insertRecoveryDecision,
+  getDecisionsForPayment,
+  type RecoveryDecisionRecord,
+  type RecoveryDecisionInsert,
 } from './recoveryDecisionRepository.js';
-export type {
-  AuditLogRecord,
-  AuditLogInsert,
+
+export {
+  insertAuditLog,
+  getAuditLogsForEntity,
+  getAllAuditLogs,
+  type AuditLogRecord,
+  type AuditLogInsert,
 } from './auditLogRepository.js';
+
+export { buildExecutionContext } from './executionContextBuilder.js';

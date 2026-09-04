@@ -3,53 +3,16 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
-}
-
-enum PaymentStatus {
-  PENDING
-  SUCCEEDED
-  FAILED
-  RECOVERED
-}
-
-enum FailureReason {
-  NETWORK_ERROR
-  BANK_DECLINED_GENERIC
-  INSUFFICIENT_FUNDS
-  EXPIRED_CARD
-  AUTH_FAILURE
-  FRAUD_SUSPECTED
-  UNKNOWN
-}
-
-enum RecoveryAttemptStatus {
-  in_flight
-  completed
-  failed
-  cancelled
-}
-
-enum PolicyDecision {
-  ALLOW
-  DENY
-  HUMAN_APPROVAL_REQUIRED
-}
-
-enum PolicyAction {
-  SMART_RETRY
-  CUSTOMER_RECOVERY
-  HUMAN_REVIEW
-  NO_ACTION
 }
 
 model Merchant {
   id                 String     @id @default(uuid())
   name               String
   automationEnabled  Boolean    @default(true) @map("automation_enabled")
-  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
 
   customers          Customer[]
   payments           Payment[]
@@ -63,8 +26,8 @@ model Customer {
   merchantId          String    @map("merchant_id")
   externalCustomerId  String    @map("external_customer_id")
   blocked             Boolean   @default(false)
-  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   merchant            Merchant  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   payments            Payment[]
@@ -81,12 +44,12 @@ model Payment {
   amountMinor             BigInt          @map("amount_minor")
   currency                String
   paymentMethod           String          @map("payment_method")
-  status                  PaymentStatus
-  failureReason            FailureReason?  @map("failure_reason")
-  transactionCreatedAt    DateTime        @map("transaction_created_at") @db.Timestamptz
-  recoveredAt              DateTime?       @map("recovered_at") @db.Timestamptz
-  createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt                DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  status                  String          // PaymentStatus: PENDING | SUCCEEDED | FAILED | RECOVERED
+  failureReason            String?         @map("failure_reason") // FailureReason
+  transactionCreatedAt    DateTime        @map("transaction_created_at")
+  recoveredAt              DateTime?       @map("recovered_at")
+  createdAt                DateTime        @default(now()) @map("created_at")
+  updatedAt                DateTime        @updatedAt @map("updated_at")
 
   merchant                 Merchant        @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   customer                 Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -104,9 +67,9 @@ model ProcessedEvent {
   merchantId       String    @map("merchant_id")
   gatewayEventId   String    @map("gateway_event_id")
   paymentId        String    @map("payment_id")
-  eventReceivedAt  DateTime  @map("event_received_at") @db.Timestamptz
-  rawPayload       Json      @map("raw_payload")
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  eventReceivedAt  DateTime  @map("event_received_at")
+  rawPayload       String    @map("raw_payload")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
   merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
   payment          Payment   @relation(fields: [paymentId], references: [id], onDelete: Restrict)
@@ -119,19 +82,17 @@ model ProcessedEvent {
 model RecoveryAttempt {
   id            String                  @id @default(uuid())
   paymentId     String                  @map("payment_id")
-  status        RecoveryAttemptStatus
+  status        String                  // RecoveryAttemptStatus: in_flight | completed | failed | cancelled
   retryCount    Int                     @default(0) @map("retry_count")
-  startedAt     DateTime                @map("started_at") @db.Timestamptz
-  completedAt   DateTime?               @map("completed_at") @db.Timestamptz
-  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  startedAt     DateTime                @map("started_at")
+  completedAt   DateTime?               @map("completed_at")
+  createdAt     DateTime                @default(now()) @map("created_at")
 
   payment       Payment                 @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   recoveryDecisions RecoveryDecision[]
 
   @@index([paymentId, status])
   @@map("recovery_attempts")
-  // NOTE: partial unique index (payment_id) WHERE status = 'in_flight'
-  // is NOT expressible in schema.prisma DSL — added manually in migration.sql.
 }
 
 model RecoveryDecision {
@@ -139,7 +100,7 @@ model RecoveryDecision {
   paymentId             String            @map("payment_id")
   recoveryAttemptId     String?           @map("recovery_attempt_id")
   eventId               String            @map("event_id")
-  evaluationTime        DateTime          @map("evaluation_time") @db.Timestamptz
+  evaluationTime        DateTime          @map("evaluation_time")
   failureReasonScore    Int?              @map("failure_reason_score")
   retryScore            Int?              @map("retry_score")
   recencyScore          Int?              @map("recency_score")
@@ -147,11 +108,11 @@ model RecoveryDecision {
   confidenceScore       Int?              @map("confidence_score")
   recoveryScore         Int?              @map("recovery_score")
   policyRuleTriggered   String            @map("policy_rule_triggered")
-  policyDecision        PolicyDecision    @map("policy_decision")
-  action                PolicyAction
-  aiResponse            Json?             @map("ai_response")
+  policyDecision        String            @map("policy_decision") // PolicyDecision: ALLOW | DENY | HUMAN_APPROVAL_REQUIRED
+  action                String            // PolicyAction: SMART_RETRY | CUSTOMER_RECOVERY | HUMAN_REVIEW | NO_ACTION
+  aiResponse            String?           @map("ai_response")
   aiValid               Boolean           @map("ai_valid")
-  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  createdAt             DateTime          @default(now()) @map("created_at")
 
   payment               Payment           @relation(fields: [paymentId], references: [id], onDelete: Restrict)
   recoveryAttempt       RecoveryAttempt?  @relation(fields: [recoveryAttemptId], references: [id], onDelete: Restrict)
@@ -167,8 +128,8 @@ model AuditLog {
   entityId    String   @map("entity_id")
   action      String
   actor       String
-  details     Json
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  details     String
+  createdAt   DateTime @default(now()) @map("created_at")
 
   @@index([entityType, entityId])
   @@map("audit_logs")
