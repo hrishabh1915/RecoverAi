@@ -7,6 +7,14 @@
 
 ## 🚀 Live Demo & Quick Links
 
+
+**Live Application:** https://recover-ai-7asy.vercel.app
+
+
+
+> **Note:** RecoverAI is demonstrated using synthetic Razorpay payment data. All revenue/recovery figures shown in the dashboard are simulated and do not represent real customer transactions or real money recovered.
+
+
 | Service | URL | Description |
 |---|---|---|
 | 🎨 **Frontend Dashboard** | **`http://localhost:5173`** | Interactive KPI metrics, batch recovery runner, transaction inspector |
