@@ -116,6 +116,16 @@ export async function getPaymentById(id: string): Promise<PaymentRecord | null> 
   return row ? toPaymentRecord(row) : null;
 }
 
+export async function getPaymentByGatewayPaymentId(
+  gatewayPaymentId: string,
+): Promise<PaymentRecord | null> {
+  const row = await prisma.payment.findFirst({
+    where: { gatewayPaymentId },
+  });
+  return row ? toPaymentRecord(row) : null;
+}
+
+
 export async function getPaymentsByMerchantAndCustomer(
   merchantId: string,
   customerId: string,

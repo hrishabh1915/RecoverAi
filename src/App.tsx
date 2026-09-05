@@ -130,7 +130,10 @@ interface PaymentAuditTimeline {
   timeline: TimelineEvent[];
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+const API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string) ||
+  (import.meta.env.VITE_API_URL as string) ||
+  '';
 
 export default function App() {
   const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
@@ -370,7 +373,7 @@ export default function App() {
           </button>
           <div className="flex items-center gap-2 bg-slate-800/60 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-mono text-emerald-400">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            {API_BASE || 'same-origin'}
+            {API_BASE.replace(/^https?:\/\//, '') || 'same-origin'}
           </div>
         </div>
       </header>

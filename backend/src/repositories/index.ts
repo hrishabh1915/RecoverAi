@@ -3,6 +3,7 @@
 export {
   createPayment,
   getPaymentById,
+  getPaymentByGatewayPaymentId,
   getPaymentsByMerchantAndCustomer,
   getAllPayments,
   updatePayment,

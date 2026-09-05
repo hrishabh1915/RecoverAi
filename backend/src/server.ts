@@ -9,6 +9,7 @@ import {
   getAllAuditLogs,
 } from './repositories/index.js';
 import { processPaymentFailureEvent } from './services/recoveryPipeline.js';
+import { processRazorpayWebhookEvent } from './services/razorpayWebhookService.js';
 import { diagnosePaymentFailure } from './services/aiDiagnosisService.js';
 import { processBatchRecovery } from './services/batchRecoveryService.js';
 import {
@@ -160,6 +161,34 @@ app.post('/api/events/payment-failed', async (req, res) => {
     console.error('Error processing payment failure event:', error);
     res.status(500).json({
       error: 'PIPELINE_ERROR',
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// ── Inbound Webhook: Razorpay Test Mode Webhook ──────────────────────────────
+/**
+ * POST /api/webhooks/razorpay
+ * Inbound webhook adapter for Razorpay payment events.
+ * Translates Razorpay payloads into RecoverAI schema and delegates to the central pipeline.
+ */
+app.post('/api/webhooks/razorpay', async (req, res) => {
+  try {
+    const rawBody = JSON.stringify(req.body);
+    const signatureHeader = req.headers['x-razorpay-signature'] as string | undefined;
+
+    const result = await processRazorpayWebhookEvent(rawBody, req.body, signatureHeader);
+
+    if (!result.success && result.message === 'Invalid Razorpay Webhook signature.') {
+      res.status(401).json(result);
+      return;
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error processing Razorpay webhook:', error);
+    res.status(500).json({
+      error: 'RAZORPAY_WEBHOOK_ERROR',
       message: error instanceof Error ? error.message : String(error),
     });
   }
