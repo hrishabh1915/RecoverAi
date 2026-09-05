@@ -28,6 +28,14 @@ const PORT = process.env.PORT ?? 3001;
 app.use(cors({ origin: '*' })); // Allow all origins for dev/demo
 app.use(express.json());
 
+// Handle Vercel serverless path prefix normalization
+app.use((req, _res, next) => {
+  if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/health')) {
+    req.url = `/api${req.url}`;
+  }
+  next();
+});
+
 // ── Health check ────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({
@@ -499,7 +507,7 @@ export function startServer(port = PORT) {
   });
 }
 
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   startServer();
 }
 

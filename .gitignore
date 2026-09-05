@@ -21,7 +21,3 @@ dist-ssr
 *.sln
 *.sw?
 .env
-
-backend/prisma/dev.db
-
-backend/prisma/dev.db

@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "buildCommand": "prisma generate --schema=backend/prisma/schema.prisma && vite build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/**/*.ts": {
+      "includeFiles": "{backend/prisma/**,prisma/**}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/((?!api|health).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
