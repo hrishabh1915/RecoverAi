@@ -95,25 +95,6 @@ npm test
 
 ---
 
-## 🎬 2-Minute Judge Pitch & Demonstration Script
-
-### Act 1: The Problem (0:00 - 0:30)
-> *"Every day, Indian businesses lose crores in failed payments. But if you blindly retry payments, you risk double-charging customers or enabling fraud. RecoverAI solves this: AI diagnoses the failure, but deterministic safety policies control the money."*
-
-### Act 2: The Dashboard & Metrics (0:30 - 1:00)
-> *"Open `http://localhost:5173`. Notice our primary KPI: **₹7,72,022 Simulated Revenue Recovered** from ₹14.78 lakh at-risk revenue. Notice our transparent disclosure watermark: we never claim simulated revenue as real revenue without explicit confirmation."*
-
-### Act 3: Autonomous AI & Stopping Rules (1:00 - 1:30)
-> *"Click on any transaction in the Explorer:
-> - UPI network timeout? Score 97/100 → AI recommends `SMART_RETRY` → Policy allows automated recovery.
-> - Suspected fraud? Score 0/100 → Policy Rule 6 immediately halts execution (`FRAUD_BLOCK`). Zero money moves.
-> - Max retries reached? Rule 7 stops execution. Cooldown active? Rule 8 stops execution."*
-
-### Act 4: Human Escalations & Audit Trail (1:30 - 2:00)
-> *"Switch to the **Human Escalations** tab. Transactions over ₹50,000 are never touched automatically. A human operator reviews the AI reasoning and clicks **Approve & Recover**.
-> Open the transaction: the complete 6-stage lifecycle timeline shows every step from gateway webhook to final revenue capture."*
-
----
 
 ## 🧪 Comprehensive Test Coverage (76 Tests)
 
