@@ -13,17 +13,20 @@ import { PrismaClient } from "@prisma/client";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { fileURLToPath } from "node:url";
+var currentDir = path.dirname(fileURLToPath(import.meta.url));
 function resolveDatabaseUrl() {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
     const tmpDb = path.join(os.tmpdir(), "dev.db");
     if (!fs.existsSync(tmpDb)) {
       const candidates = [
-        path.join(process.cwd(), "backend", "prisma", "dev.db"),
         path.join(process.cwd(), "prisma", "dev.db"),
-        path.resolve(process.cwd(), "backend/prisma/dev.db"),
+        path.join(process.cwd(), "backend", "prisma", "dev.db"),
         path.resolve(process.cwd(), "prisma/dev.db"),
-        path.join(__dirname, "..", "..", "prisma", "dev.db"),
-        path.join(__dirname, "..", "..", "..", "backend", "prisma", "dev.db")
+        path.resolve(process.cwd(), "backend/prisma/dev.db"),
+        path.join(currentDir, "..", "..", "prisma", "dev.db"),
+        path.join(currentDir, "..", "..", "..", "backend", "prisma", "dev.db"),
+        path.join(currentDir, "prisma", "dev.db")
       ];
       for (const candidate of candidates) {
         if (fs.existsSync(candidate)) {
