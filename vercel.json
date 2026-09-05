@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "prisma generate --schema=backend/prisma/schema.prisma && vite build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/**/*.ts": {
+    "api/**/*.js": {
       "includeFiles": "{backend/prisma/**,prisma/**}"
     }
   },

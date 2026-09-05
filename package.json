@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "prisma generate --schema=backend/prisma/schema.prisma && vite build",
-    "postinstall": "prisma generate --schema=backend/prisma/schema.prisma",
+    "bundle:server": "esbuild backend/src/server.ts --bundle --platform=node --format=esm --external:@prisma/client --external:express --external:cors --outfile=api/server.js",
+    "build": "prisma generate --schema=prisma/schema.prisma && npm run bundle:server && vite build",
+    "postinstall": "prisma generate --schema=prisma/schema.prisma && npm run bundle:server",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
@@ -29,6 +30,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.18",
+    "esbuild": "^0.21.5",
     "eslint": "^9.9.1",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.11",
